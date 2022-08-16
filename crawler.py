@@ -36,13 +36,12 @@ def get_artist():
    
   
    
-    for name in artist_names:
-        print(name.get_text())
+    for name,album in zip(artist_names,artist_albums):
+        print(f"{name.get_text()}:{album.find('a').get_text()}")
 
 
 
-    for album in artist_albums:
-       print(album.find('a').get_text())  
+    
 
 
     # for lyric_link in artist_albums:
