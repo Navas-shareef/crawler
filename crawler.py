@@ -1,5 +1,6 @@
 import argparse
 import logging
+import os
 
 import requests
 from bs4 import BeautifulSoup
@@ -22,23 +23,38 @@ def configure_logging(level=logging.INFO):
     logger.addHandler(screen_handler)
 
 
-def get_artist():
-    logger.debug("Crawling starting")
-    res=requests.get("https://www.songlyrics.com/")
-    soup=BeautifulSoup(res.content)
-    content=soup.find('table',{"class":"tracklist"})
-    
-  
-    artist_names=content.findAll('span')
+def get_artists(artists):
+    resp = requests.get(artists)
+    soup = BeautifulSoup(resp.content, "lxml")
+    track_list = soup.find("table", attrs = {"class" : "tracklist"})
+    track_link = track_list.find_all('td',{"class":"td-item td-last"})
+    artists={}
+    for link in range(0,5):
+            artists[track_link[link].find('a').text]=track_link[link].find('a')['href']
+    return artists
 
-    artist_albums=content.findAll('td',{"class":"td-item td-last"})
+def get_artists_songs(singer_name,artists_songs):
+    resp = requests.get(artists_songs)
+    soup = BeautifulSoup(resp.content, "lxml")
+    song_lists = soup.find("table", attrs = {"class" : "tracklist"})
+    songs_list = song_lists.find_all('a')
+    albums={}
+    for song in range(0,5):
+        albums[songs_list[song].text]=songs_list[song]['href']
+        # logger.info(songs_list[song].text)        
+    return albums
 
+def get_atrists_song_lyrics(song_lyrics):
+    resp = requests.get(song_lyrics)
+    soup = BeautifulSoup(resp.content, "lxml")
+    lyrics = soup.find('p', attrs = {"id" : "songLyricsDiv"})
+    # lyrics=lyrics.find_all('br')
+    lines=[]
+    # print(lyrics.text)
    
-  
-   
-    for name,album in zip(artist_names,artist_albums):
-        print(f"{name.get_text()}:{album.find('a').get_text()}")
-
+    # for line in range(0,5):
+    #     lines.append(lyrics[line].text)
+    #     print(line.text)
 
 
     
@@ -64,12 +80,28 @@ def main():
         configure_logging(logging.DEBUG)
     else:
         configure_logging(logging.INFO)
-    logger.debug("Here's a debug message")
-    logger.info("Here's an info message!")
-    logger.warning("Here's an warning message!")
-    logger.critical("Here's an critical message!")
-    get_artist()
+   
+    artists=get_artists('https://www.songlyrics.com/top-artists-lyrics.html')
+    # print(artists)
+    
 
+    data={}
+    for singer,songlink in artists.items():
+        artist_dir=os.path.join('/home/navas/Desktop/jul-2022-crawler',singer)
+        os.makedirs(artist_dir,exist_ok=True)
+        data[singer]=get_artists_songs(singer,artists[singer])
+
+    
+    # print(data)
+    
+    print(data.values())
+
+    for singer,songs in data.items():  
+        for song,link in data[singer].items():
+            file=open(f'/home/navas/Desktop/jul-2022-crawler/{singer}/{song}.txt','w')  
+            get_atrists_song_lyrics(link)
+    
+   
 
 if __name__ == "__main__":
     main()
